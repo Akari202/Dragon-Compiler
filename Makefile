@@ -1,32 +1,31 @@
-LEX = lex
+LEX = flex
 YACC = bison -d
-CC = gcc
+CC = cc
+CFLAGS = -g -ferror-limit=0 -std=c17
 
-# calc is the final object that we will generate, it is produced by
-# the C compiler from the y.tab.o and from the lex.yy.o
+dragon: dragon.tab.o lex.yy.o dragon.c
+	$(CC) $(CFLAGS) -o dragon dragon.c dragon.tab.o lex.yy.o -ll -lm -ly
 
-dragon: y.tab.o lex.yy.o
-	$(CC) -o dragon y.tab.o lex.yy.o -ll -lm
+lex.yy.o: lex.yy.c
+	$(CC) $(CFLAGS) -c lex.yy.c
+dragon.tab.o: dragon.tab.c dragon.tab.h
+	$(CC) $(CFLAGS) -c dragon.tab.c
 
-# These dependency rules indicate that (1) lex.yy.o depends on
-# lex.yy.c and y.tab.h and (2) lex.yy.o and y.tab.o depend on dragon.h.
-# Make uses the dependencies to figure out what rules must be run when
-# a file has changed.
-
-lex.yy.o: lex.yy.c y.tab.h
-lex.yy.o y.tab.o: dragon.h
-
-## This rule will use yacc to generate the files y.tab.c and y.tab.h
-## from our file calc.y
-
-y.tab.c y.tab.h: dragon.y
-	$(YACC) -v dragon.y
-
-## this is the make rule to use lex to generate the file lex.yy.c from
-## our file calc.l
+dragon.tab.c dragon.tab.h: dragon.y
+	$(YACC) -dv dragon.y
 
 lex.yy.c: dragon.l
-	$(LEX) dragon.l
+	$(LEX) -l dragon.l
+
+test: dragon
+	@for testfile in ./Testing/Semantic/*; do \
+		echo "Running test on $$testfile"; \
+		./dragon < $$testfile; \
+	done
 
 clean:
 	-rm -f *.o lex.yy.c *.tab.*  dragon *.output
+
+all: dragon
+
+.PHONY: all clean

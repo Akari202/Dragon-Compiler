@@ -50,3 +50,9 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+dragon
+*.tab.*
+*.output
+lex.yy.c
+.idea
