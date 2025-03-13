@@ -1,0 +1,6 @@
+*.o
+lex.yy.*
+dragon
+.idea/
+*.tab.*
+*.output
