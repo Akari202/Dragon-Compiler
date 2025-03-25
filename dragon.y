@@ -2,6 +2,8 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include "list.h"
+#include "ast.h"
 
 extern int yylex();
 
@@ -26,13 +28,12 @@ void yyerror(char *error){
 %token IF
 %token MOD
 %token NOT
-%token NUMBER
-%token INTEGER
+%token INUMBER
+%token FNUMBER
 %token OF
 %token OR
 %token PROCEDURE
 %token PROGRAM
-%token REAL
 %token RECORD
 %token STRING
 %token TBEGIN
@@ -54,16 +55,33 @@ void yyerror(char *error){
 %token <ival> REPEAT
 %token <sval> UNTIL
 %token <sval> IDENTIFIER
+%token <ival> INTEGER
+%token <fval> REAL
+
+%type <list> declarations
+%type <list> identifier_list
 
 %start program
 
 %right THEN ELSE
 
+%union {
+    char* opval;
+    int ival;
+    float fval;
+    char* sval;
+    struct List* list;
+}
+
 %%
 
-program : PROGRAM {}
-        ;
+program : PROGRAM IDENTIFIER '(' identifier_list ')' ';' {}
 
+identifier_list : IDENTIFIER                        { $$ = create_list($1); }
+                | identifier_list ',' IDENTIFIER    { $$ = $1; append($$, $3); }
+                ;
+
+declarations : declarations VAR identifier_list ':' type ';' { $$ = $1; append($$, $5) }
 
 %%
 

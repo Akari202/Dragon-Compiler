@@ -1,4 +1,6 @@
 *.o
+test_tree
+*.vim
 lex.yy.*
 dragon
 .idea/

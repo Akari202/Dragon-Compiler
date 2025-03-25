@@ -15,8 +15,11 @@ lex.yy.c lex.yy.h: dragon.l dragon.tab.h
 dragon.tab.o: dragon.tab.c dragon.tab.h
 	$(CC) $(CFLAGS) -c dragon.tab.c
 
-dragon.tab.c dragon.tab.h: dragon.y
+dragon.tab.c dragon.tab.h: dragon.y ast.h list.h
 	$(YACC) -dv dragon.y
+
+test_tree: ast.h test_tree.c
+	$(CC) $(CFLAGS) -o test_tree test_tree.c
 
 clean:
 	-rm -f *.o lexer.* lex.yy.* *.tab.*  dragon *.output

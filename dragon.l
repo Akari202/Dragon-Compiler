@@ -7,7 +7,8 @@
 
 %}
 
-%option yylineno noyywrap
+%option yylineno
+%option noyywrap
 
 %%
 
@@ -24,12 +25,12 @@
 
     /* number tokens */
 [0-9]*"."[0-9]+             {
-                                fprintf(stderr, "[NUMBER: %f] ", atof(yytext));
-                                return NUMBER;
+                                printf("[FNUMBER: %f] ", atof(yytext));
+                                return FNUMBER;
                             }
 [0-9]+		                {
-                                fprintf(stderr, "[INTEGER: %d] ", atoi(yytext));
-                                return INTEGER;
+                                printf("[INUMBER: %d] ", atoi(yytext));
+                                return INUMBER;
                             }
 
     /* operator tokens */
@@ -71,9 +72,17 @@ var				            {
 					            printf("[VAR] ");
                                 return VAR;
                             }
-..		                    {
+\.\.		                {
 					            printf("[DOTDOT] ");
                                 return DOTDOT;
+                            }
+integer                     {
+                                printf("[INTEGER] ");
+                                return INTEGER;
+                            }
+real                        {
+                                printf("[REAL] ");
+                                return END;
                             }
 
     /* control-flow keyword tokens */
@@ -115,10 +124,6 @@ begin			            {
 				            }
 end				            {
                                 printf("[END] ");
-                                return END;
-                            }
-real                        {
-                                printf("[REAL] ");
                                 return END;
                             }
 
