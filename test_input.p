@@ -1,5 +1,5 @@
-program Example;
-var x, y: integer;
+program Example( input, output );
+    var x, y: integer;
 begin
     x := 10;
     y := x + 20;

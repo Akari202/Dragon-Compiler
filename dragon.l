@@ -1,9 +1,16 @@
 %{
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 #include "dragon.tab.h"
+
+void print_token(const char *token_name, const char *token_value) {
+    if (token_value) {
+        printf("[TOKEN: %s, VALUE: %s]\n", token_name, token_value);
+    } else {
+        printf("[TOKEN: %s]\n", token_name);
+    }
+}
 
 %}
 
@@ -12,141 +19,104 @@
 
 %%
 
-    /* ignore comments */
-"{"(.|"\n")*"}"             { printf("[COMMENT] "); }
-"(*"([^*]|"\n")*"*)"        { printf("[COMMENT] "); }
-"//".*                      { printf("[COMMENT] "); }
+    /* Comments */
+"{"([^}]|"\n")*"}"          { /* Ignore comments */ }
+"(*"([^*]|"\n")*"*)"        { /* Ignore comments */ }
+"//".*                      { /* Ignore comments */ }
 
-    /* ignore whitespace */
-[ \t]                       { }
-[\n\r]                      {
-                                printf("\n%d", yylineno);
-                            }
+    /* Whitespace */
+[ \t]                       { /* Ignore whitespace */ }
+[\n\r]                      { ++yylineno; }
 
-    /* number tokens */
+    /* Numbers */
 [0-9]*"."[0-9]+             {
-                                printf("[FNUMBER: %f] ", atof(yytext));
-                                return FNUMBER;
+                                yylval.fval = atof(yytext);
+                                print_token("FNUM", yytext);
+                                return FNUM;
                             }
 [0-9]+		                {
-                                printf("[INUMBER: %d] ", atoi(yytext));
-                                return INUMBER;
+                                yylval.ival = atoi(yytext);
+                                print_token("INUM", yytext);
+                                return INUM;
                             }
 
-    /* operator tokens */
-"<"|">"|"="|">="|"<="|"<>"  {
-					            printf("[RELOP: %s] ", yytext);
-					            return RELOP;
-				            }
+    /* Relational Operators */
+"<"|">"|"="|"<="|">="|"<>"  {
+                                yylval.sval = strdup(yytext);
+                                print_token("RELOP", yytext);
+                                return RELOP;
+                            }
+
+    /* Additive Operators */
 "+"|"-"|"or"        	    {
-					            printf("[ADDOP: %s] ", yytext);
-					            return ADDOP;
+                                yylval.sval = strdup(yytext);
+                                print_token("ADDOP", yytext);
+                                return ADDOP;
                             }
+
+    /* Multiplicative Operators */
 "*"|"/"|"and"|"mod"|"div"	{
-					            printf("[MULOP: %s] ", yytext);
-					            return MULOP;
-				            }
+                                yylval.sval = strdup(yytext);
+                                print_token("MULOP", yytext);
+                                return MULOP;
+                            }
+
+    /* Assignment Operator */
 ":="				            {
-					            printf("[ASSIGNOP] ");
-					            return ASSIGNOP;
-				            }
+                                print_token("ASSIGNOP", NULL);
+                                return ASSIGNOP;
+                            }
+
+    /* Logical NOT */
 not				            {
-					            printf("[NOT] ");
-					            return NOT;
-				            }
-
-    /* general tokens */
-program			            {
-					            printf("[PROGRAM] ");
-					            return PROGRAM;
-				            }
-function		            {
-					            printf("[FUNCTION] ");
-                                return FUNCTION;
-                            }
-procedure		            {
-					            printf("[PROCEDURE] ");
-                                return PROCEDURE;
-                            }
-var				            {
-					            printf("[VAR] ");
-                                return VAR;
-                            }
-\.\.		                {
-					            printf("[DOTDOT] ");
-                                return DOTDOT;
-                            }
-integer                     {
-                                printf("[INTEGER] ");
-                                return INTEGER;
-                            }
-real                        {
-                                printf("[REAL] ");
-                                return REAL;
+                                print_token("NOT", NULL);
+                                return NOT;
                             }
 
-    /* control-flow keyword tokens */
-if				            {
-					            printf("[IF] ");
-                                return IF;
-                            }
-then			            {
-                                printf("[THEN] ");
-                                return THEN;
-                            }
-else			            {
-					            printf("[ELSE] ");
-                                return ELSE;
-                            }
-do				            {
-					            printf("[DO] ");
-                                return DO;
-				            }
-while			            {
-					            printf("[WHILE] ");
-                                return WHILE;
-                            }
-for				            {
-					            printf("[FOR] " );
-                                return FOR;
-                            }
-repeat			            {
-					            printf("[REPEAT] ");
-                                return REPEAT;
-                            }
-until			            {
-					            printf("[UNTIL] ");
-                                return UNTIL;
-                            }
-begin			            {
-					            printf("[BEGIN] ");
-					            return TBEGIN;
-				            }
-end				            {
-                                printf("[END] ");
-                                return END;
-                            }
+    /* Keywords */
+program			            { print_token("PROGRAM", NULL); return PROGRAM; }
+function		            { print_token("FUNCTION", NULL); return FUNCTION; }
+procedure		            { print_token("PROCEDURE", NULL); return PROCEDURE; }
+var				            { print_token("VAR", NULL); return VAR; }
+integer                     { print_token("INTEGER", NULL); return INTEGER; }
+real                        { print_token("REAL", NULL); return REAL; }
+if				            { print_token("IF", NULL); return IF; }
+then			            { print_token("THEN", NULL); return THEN; }
+else			            { print_token("ELSE", NULL); return ELSE; }
+do				            { print_token("DO", NULL); return DO; }
+while			            { print_token("WHILE", NULL); return WHILE; }
+for				            { print_token("FOR", NULL); return FOR; }
+repeat			            { print_token("REPEAT", NULL); return REPEAT; }
+until			            { print_token("UNTIL", NULL); return UNTIL; }
+begin			            { print_token("BEGIN_TOKEN", NULL); return BEGIN_TOKEN; }
+end				            { print_token("END", NULL); return END; }
+array			            { print_token("ARRAY", NULL); return ARRAY; }
+of				            { print_token("OF", NULL); return OF; }
 
-    /* identifier tokens */
+    /* Double Dot */
+"\.\."		                { print_token("DOUBLEDOT", NULL); return DOUBLEDOT; }
+
+    /* Identifiers */
 [a-zA-Z][a-zA-Z0-9]*	    {
-					            printf("[IDENTIFIER: %s]", yytext);
-					            return IDENTIFIER;
-				            }
-"'"[a-zA-Z0-9]*"'"		    {
-					            printf("[STRING: %s]", yytext);
-                                return STRING;
+                                yylval.sval = strdup(yytext);
+                                print_token("ID", yytext);
+                                return ID;
                             }
 
-    /* single-character tokens */
-"."                         {
-                                printf("[DOT] ");
-                                return DOT;
-                            }
+    /* Single-character tokens */
+";"                         { print_token("SEMICOLON", NULL); return ';'; }
+":"                         { print_token("COLON", NULL); return ':'; }
+","                         { print_token("COMMA", NULL); return ','; }
+"."                         { print_token("DOT", NULL); return '.'; }
+"("                         { print_token("LPAREN", NULL); return '('; }
+")"                         { print_token("RPAREN", NULL); return ')'; }
+"["                         { print_token("LBRACKET", NULL); return '['; }
+"]"                         { print_token("RBRACKET", NULL); return ']'; }
 
-    /* default */
+    /* Unrecognized Characters */
 .				            {
-					            fprintf(stderr, "Unrecognized character: %s at line %d\n", yytext, yylineno);
-					            exit(1);
-				            }
+                                fprintf(stderr, "Unrecognized character: %s at line %d\n", yytext, yylineno);
+                                exit(1);
+                            }
 
 %%

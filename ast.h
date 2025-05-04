@@ -47,7 +47,7 @@ ASTNode *create_ast_node(ASTNodeType type, const char *value) {
     node->children = NULL;
     node->child_count = 0;
     node->child_capacity = 0;
-    node->parent = NULL;  // Initialize parent to NULL
+    node->parent = NULL;
     return node;
 }
 
@@ -69,6 +69,7 @@ const char *get_ast_node_type_name(ASTNodeType type) {
         case AST_TYPE_RELATIONAL: return "Relational";
         case AST_TYPE_ARITHMETIC: return "Arithmetic";
         case AST_TYPE_ARRAY_ACCESS: return "Array Access";
+        case AST_TYPE_DECLARATIONS: return "Declarations";
         default: return "Unknown";
     }
 }

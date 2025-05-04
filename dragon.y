@@ -8,8 +8,8 @@
 // External declaration for the lexer
 extern int yylex();
 void yyerror(char *error);
+SymbolTable *symbol_table = NULL;
 
-SymbolTable *symbol_table = NULL; // Global symbol table
 %}
 
 %union {
@@ -32,7 +32,7 @@ SymbolTable *symbol_table = NULL; // Global symbol table
 %token OF
 %token INTEGER
 %token REAL
-%token BEGIN
+%token BEGIN_TOKEN
 %token END
 %token FUNCTION
 %token PROCEDURE
@@ -74,11 +74,11 @@ SymbolTable *symbol_table = NULL; // Global symbol table
 %%
 
 program:
-    PROGRAM ID "(" identifier_list ")" ";"
+    PROGRAM ID '(' identifier_list ')' ';'
     declarations
     subprogram_declarations
     compound_statement
-    "."
+    '.'
     {
         $$ = create_ast_node(AST_TYPE_PROGRAM, $2);
         add_child($$, $4);  // identifier_list
@@ -95,14 +95,17 @@ identifier_list:
         $$ = list_create();
         list_append($$, create_ast_node(AST_TYPE_IDENTIFIER, $1));
     }
-    | identifier_list "," ID {
+    | identifier_list ',' ID {
         list_append($1, create_ast_node(AST_TYPE_IDENTIFIER, $3));
         $$ = $1;
+    }
+    | /* empty */ {
+        $$ = list_create();
     }
     ;
 
 declarations:
-    declarations VAR identifier_list ":" type ";"
+    declarations VAR identifier_list ':' type ';'
     {
         $$ = create_ast_node(AST_TYPE_DECLARATIONS, "declarations");
         add_child($$, $1);  // Previous declarations
@@ -125,7 +128,7 @@ type:
     standard_type {
         $$ = $1; // Pass the type name directly
     }
-    | ARRAY "[" INUM DOUBLEDOT INUM "]" OF standard_type {
+    | ARRAY '[' INUM DOUBLEDOT INUM ']' OF standard_type {
         $$ = strdup("ARRAY");
     }
     ;
@@ -140,7 +143,7 @@ standard_type:
     ;
 
 subprogram_declarations:
-    subprogram_declarations subprogram_declaration ";"
+    subprogram_declarations subprogram_declaration ';'
     {
         list_append($1, $2);
         $$ = $1;
@@ -151,7 +154,7 @@ subprogram_declarations:
     ;
 
 subprogram_declaration:
-    FUNCTION ID "(" parameter_list ")" ":" standard_type ";"
+    FUNCTION ID '(' parameter_list ')' ':' standard_type ';'
     declarations
     subprogram_declarations
     compound_statement
@@ -163,7 +166,7 @@ subprogram_declaration:
         add_child($$, $10);  // subprogram_declarations
         add_child($$, $11); // compound_statement
     }
-    | PROCEDURE ID "(" parameter_list ")" ";"
+    | PROCEDURE ID '(' parameter_list ')' ';'
     declarations
     subprogram_declarations
     compound_statement
@@ -177,7 +180,7 @@ subprogram_declaration:
     ;
 
 parameter_list:
-    identifier_list ":" type
+    identifier_list ':' type
     {
         $$ = $1;
         ListNode *node = $1->head;
@@ -186,7 +189,7 @@ parameter_list:
             node = node->next;
         }
     }
-    | parameter_list ";" identifier_list ":" type
+    | parameter_list ';' identifier_list ':' type
     {
         ListNode *node = $3->head;
         while (node) {
@@ -199,7 +202,7 @@ parameter_list:
     ;
 
 compound_statement:
-    BEGIN optional_statements END
+    BEGIN_TOKEN optional_statements END
     {
         $$ = create_ast_node(AST_TYPE_COMPOUND, NULL);
         add_child($$, $2);  // Add optional statements as children
@@ -220,7 +223,7 @@ statement_list:
         $$ = create_ast_node(AST_TYPE_STATEMENT, NULL);
         add_child($$, $1);
     }
-    | statement_list ";" statement
+    | statement_list ';' statement
     {
         add_child($1, $3);
         $$ = $1;
@@ -267,7 +270,7 @@ variable:
     ID {
         $$ = create_ast_node(AST_TYPE_IDENTIFIER, $1);
     }
-    | ID "[" expression "]"
+    | ID '[' expression ']'
     {
         $$ = create_ast_node(AST_TYPE_ARRAY_ACCESS, $1);
         add_child($$, $3);  // index
@@ -278,7 +281,7 @@ procedure_statement:
     ID {
         $$ = create_ast_node(AST_TYPE_PROCEDURE_CALL, $1);
     }
-    | ID "(" expression_list ")"
+    | ID '(' expression_list ')'
     {
         $$ = create_ast_node(AST_TYPE_PROCEDURE_CALL, $1);
         add_child($$, $3);  // arguments
@@ -290,7 +293,7 @@ expression_list:
         $$ = create_ast_node(AST_TYPE_EXPRESSION, NULL);
         add_child($$, $1);
     }
-    | expression_list "," expression
+    | expression_list ',' expression
     {
         add_child($1, $3);
         $$ = $1;
@@ -338,25 +341,27 @@ factor:
     ID {
         $$ = create_ast_node(AST_TYPE_IDENTIFIER, $1);
     }
-    | ID "(" expression_list ")"
+    | ID '(' expression_list ')'
     {
         $$ = create_ast_node(AST_TYPE_FUNCTION_CALL, $1);
         add_child($$, $3);  // arguments
     }
-    | ID "[" expression "]"
+    | ID '[' expression ']'
     {
         $$ = create_ast_node(AST_TYPE_ARRAY_ACCESS, $1);
         add_child($$, $3);  // index
     }
-    | INUM
-    {
-        $$ = create_ast_node(AST_TYPE_LITERAL, $1);
+    | INUM {
+        char buffer[32];
+        sprintf(buffer, "%d", $1);  // Convert integer to string
+        $$ = create_ast_node(AST_TYPE_LITERAL, buffer);
     }
-    | FNUM
-    {
-        $$ = create_ast_node(AST_TYPE_LITERAL, $1);
+    | FNUM {
+        char buffer[32];
+        sprintf(buffer, "%f", $1);  // Convert float to string
+        $$ = create_ast_node(AST_TYPE_LITERAL, buffer);
     }
-    | "(" expression ")" {
+    | '(' expression ')' {
         $$ = $2;
     }
     | NOT factor
