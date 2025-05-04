@@ -7,8 +7,8 @@
 
 // External declaration for the lexer
 extern int yylex();
+extern int yylineno;
 void yyerror(char *error);
-SymbolTable *symbol_table = NULL;
 
 %}
 
@@ -47,6 +47,7 @@ SymbolTable *symbol_table = NULL;
 %token NOT
 %token <sval> ASSIGNOP
 %token DOUBLEDOT
+%token DOT
 
 %type <list> identifier_list
 %type <list> subprogram_declarations
@@ -78,15 +79,14 @@ program:
     declarations
     subprogram_declarations
     compound_statement
-    '.'
+    DOT
     {
         $$ = create_ast_node(AST_TYPE_PROGRAM, $2);
         add_child($$, $4);  // identifier_list
         add_child($$, $7);  // declarations
         add_child($$, $8);  // subprogram_declarations
         add_child($$, $9);  // compound_statement
-        print_ast($$, 0); // Debug print of the AST
-        free_ast($$); // Free the AST after use
+        root_ast = $$;
     }
     ;
 
@@ -205,16 +205,24 @@ compound_statement:
     BEGIN_TOKEN optional_statements END
     {
         $$ = create_ast_node(AST_TYPE_COMPOUND, NULL);
-        add_child($$, $2);  // Add optional statements as children
+        if ($2 != NULL) {  // Add optional statements only if they exist
+            add_child($$, $2);
+        }
+    }
+    | /* empty */
+    {
+        $$ = NULL;
     }
     ;
 
 optional_statements:
-    statement_list {
-        $$ = $1;
+    statement_list
+    {
+        $$ = $1;  // Pass the list of statements
     }
-    | /* empty */ {
-        $$ = create_ast_node(AST_TYPE_COMPOUND, NULL);
+    | /* empty */
+    {
+        $$ = NULL;  // No statements, return NULL
     }
     ;
 
@@ -374,5 +382,5 @@ factor:
 %%
 
 void yyerror(char *error) {
-    fprintf(stderr, "Error: %s\n", error);
+    fprintf(stderr, "Error: %s at line %d\n", error, yylineno);
 }

@@ -107,7 +107,7 @@ of				            { print_token("OF", NULL); return OF; }
 ";"                         { print_token("SEMICOLON", NULL); return ';'; }
 ":"                         { print_token("COLON", NULL); return ':'; }
 ","                         { print_token("COMMA", NULL); return ','; }
-"."                         { print_token("DOT", NULL); return '.'; }
+"\."                        { print_token("DOT", NULL); return DOT; }
 "("                         { print_token("LPAREN", NULL); return '('; }
 ")"                         { print_token("RPAREN", NULL); return ')'; }
 "["                         { print_token("LBRACKET", NULL); return '['; }
@@ -118,5 +118,7 @@ of				            { print_token("OF", NULL); return OF; }
                                 fprintf(stderr, "Unrecognized character: %s at line %d\n", yytext, yylineno);
                                 exit(1);
                             }
+
+<<EOF>>                     { print_token("EOF", NULL); return 0; }
 
 %%

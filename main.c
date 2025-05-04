@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "lex.yy.h"
+#include "ast.h"
 #include "symbol_table.h"
 
 extern int yyparse();
-extern SymbolTable *symbol_table;
 
 int main(int argc, char *argv[]) {
     if (argc < 2) {
@@ -24,12 +24,17 @@ int main(int argc, char *argv[]) {
         symbol_table = create_symbol_table(10);
         if (symbol_table == NULL) {
             perror("Error creating symbol table");
+        } else {
+            push_scope(symbol_table);
         }
 
         if (yyparse() != 0) {
             fprintf(stderr, "Error parsing file: %s\n", argv[i]);
         }
 
+        print_ast(root_ast);
+
+        free_ast(root_ast);
         free_symbol_table(symbol_table);
         fclose(yyin);
     }

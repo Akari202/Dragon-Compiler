@@ -38,7 +38,7 @@ int main() {
 
     // Print the AST
     printf("\nGenerated Abstract Syntax Tree (AST):\n");
-    print_ast(program_node, 0);
+    print_ast(program_node);
 
     // Free the AST
     printf("\nFreeing AST...\n");
