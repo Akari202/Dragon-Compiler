@@ -3,60 +3,101 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 
-struct List;
+// Doubly linked list node
+typedef struct ListNode {
+    void *data;
+    struct ListNode *next;
+    struct ListNode *prev;
+} ListNode;
 
-typedef struct {
-    struct List* up;
-    struct List* down;
-    char* value;
+// Doubly linked list structure
+typedef struct List {
+    ListNode *head;
+    ListNode *tail;
+    size_t size;
 } List;
 
-void print_list(List* list);
-void destroy_list(List* list);
-void append(List* list, char* value);
-
-List* create_list(char* value) {
-    List* list = (List*)malloc(sizeof(List));
-    if (list == NULL) {
-        perror("Failed to allocate memory");
+// Create a new list
+List *list_create() {
+    List *lst = (List *)malloc(sizeof(List));
+    if (!lst) {
+        perror("Failed to allocate memory for list");
         exit(1);
     }
-    list->up = NULL;
-    list->down = NULL;
-    list->value = value;
-    return list;
+    lst->head = NULL;
+    lst->tail = NULL;
+    lst->size = 0;
+    return lst;
 }
 
-void destroy_list(List* list) {
-    if (list != NULL) {
-        destroy_list(list->up);
-        destroy_list(list->down);
-        free(list);
+// Append data to the list
+void list_append(List *lst, void *data) {
+    ListNode *node = (ListNode *)malloc(sizeof(ListNode));
+    if (!node) {
+        perror("Failed to allocate memory for node");
+        exit(1);
     }
-}
+    node->data = data;
+    node->next = NULL;
+    node->prev = lst->tail;
 
-void append(List* list, char* value) {
-    if (list->down != NULL) {
-        append(list->down, value);
+    if (lst->tail) {
+        lst->tail->next = node;
     } else {
-        List* new_list = (List*)malloc(sizeof(List));
-        new_list->value = value;
-        new_list->up = list;
-        new_list->down = NULL;
-        list->down = new_list;
+        lst->head = node;
+    }
+    lst->tail = node;
+    lst->size++;
+}
+
+// Remove a node from the list
+void list_remove(List *lst, void *data, int (*cmp_func)(void *, void *)) {
+    ListNode *current = lst->head;
+    while (current) {
+        if (cmp_func(current->data, data) == 0) {
+            if (current->prev) {
+                current->prev->next = current->next;
+            } else {
+                lst->head = current->next;
+            }
+
+            if (current->next) {
+                current->next->prev = current->prev;
+            } else {
+                lst->tail = current->prev;
+            }
+
+            free(current);
+            lst->size--;
+            return;
+        }
+        current = current->next;
     }
 }
 
-void print_list(List* list) {
-    printf("%s", list->value);
-    if (list->up != NULL) {
-        print_list(list->up);
+// Traverse the list
+void list_traverse(List *lst, void (*callback)(void *)) {
+    ListNode *current = lst->head;
+    while (current) {
+        callback(current->data);
+        current = current->next;
     }
-    if (list->down != NULL) {
-        print_list(list->down);
+}
+
+// Free the list
+void list_free(List *lst, void (*free_data)(void *)) {
+    ListNode *current = lst->head;
+    while (current) {
+        ListNode *temp = current;
+        current = current->next;
+
+        if (free_data) {
+            free_data(temp->data);
+        }
+        free(temp);
     }
+    free(lst);
 }
 
 #endif

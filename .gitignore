@@ -6,3 +6,6 @@ dragon
 .idea/
 *.tab.*
 *.output
+test_ast
+test_list
+test_symbol_table

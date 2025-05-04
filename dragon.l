@@ -13,9 +13,9 @@
 %%
 
     /* ignore comments */
-"{"(.|"\n")*"}"             { }
-"(*"([^*]|"\n")*"*)"        { }
-"//".*                      { }
+"{"(.|"\n")*"}"             { printf("[COMMENT] "); }
+"(*"([^*]|"\n")*"*)"        { printf("[COMMENT] "); }
+"//".*                      { printf("[COMMENT] "); }
 
     /* ignore whitespace */
 [ \t]                       { }
@@ -46,7 +46,7 @@
 					            printf("[MULOP: %s] ", yytext);
 					            return MULOP;
 				            }
-:=				            {
+":="				            {
 					            printf("[ASSIGNOP] ");
 					            return ASSIGNOP;
 				            }
@@ -82,7 +82,7 @@ integer                     {
                             }
 real                        {
                                 printf("[REAL] ");
-                                return END;
+                                return REAL;
                             }
 
     /* control-flow keyword tokens */
@@ -137,9 +137,16 @@ end				            {
                                 return STRING;
                             }
 
+    /* single-character tokens */
+"."                         {
+                                printf("[DOT] ");
+                                return DOT;
+                            }
+
     /* default */
 .				            {
-					            printf("{%c} ", yytext[0]);
-					            return yytext[0];
+					            fprintf(stderr, "Unrecognized character: %s at line %d\n", yytext, yylineno);
+					            exit(1);
 				            }
+
 %%

@@ -1,0 +1,91 @@
+1. Lex scanner + Yacc parser
+	- scanning + parsing
+
+2. Syntax tree module
+	- semantic and type checking
+	- code generation
+
+3. Symbol table: stack of hash tables
+	- store information about user-defined names (variable, function, procedure)
+	- scoping (stack-based)
+	- semantic & type checking:
+		o in declarations: insert newly declared name
+			(but check that the name does not exist in the LOCAL scope):
+			before calling hash_insert(name), call hash_local_search(name).
+		o in usage, check that name exists in some scope (do hash_global_search(name)).
+		o the name of a subprogram (function or procedure) must exist in its parent's scope
+			(not its own scope).
+			example:
+				program main(input,output);
+					var a:integer;
+					var b:real;
+					function foo (* open/push new scope *) (a:integer; z:real):integer:
+						var b:integer;
+					begin
+						foo := 2*foo(a+13, b*3.14)
+					end; (* close/pop scope *)
+				begin
+					a := foo(1)
+				end.
+
+4. Semantic and Type Checking routines:
+		o Need to create a type checking function: is_type(tree) => INTEGER or REAL (or something else).
+			is_type(tree) is a Post-Order Traversal: recurse left, recurse right, check root.
+
+		o Statements:
+			- Assignment statement:
+				variable ASSIGNOP expression
+				Steps: hash_global_search(name) -> symbol-table pointer p
+						p->type must equal to is_type(expression)
+				Write a modular routine called check_assignment_statement(variable, expression).
+			- If-Then statement:
+				IF expression THEN statement
+				Steps: check that is_type(expression) is BOOLEAN (e.g: a < 13).
+						then recursively semantic-check(statement).
+			- Procedure_Call statement:
+				name( expression_list )
+			- ETC.
+
+		o Expressions:
+			- Factor rule:
+				Factor -> ID	(* hash_global_search(name) must return something *)
+					| ID '(' expression_list ')' (* check_function_call(ID, expression_list) *)
+					| ID '[' expression ']'		(* check_array_access(ID, expression) *)
+					| '(' expression ')'
+					| INUM
+					| RNUM
+
+			- Simple_Expression:
+				simple_expression -> ADDOP term
+
+5. Code Generation
+		- Dynamic array bounds checking (run-time):
+			ID '[' expression ']'
+			syntax tree looks like:
+				root[ARRAY]
+					left[ID]: symbol_table pointer
+					right[expression]
+
+			Code generation steps:
+					i) call gencode(expression): result in R0 (Intel register = %ecx)
+						the assembly code for expression has been generated
+
+							[[ASSEMBLY CODE for expression]]
+
+					ii) generate bounds checking on the value of %ecx:
+
+							[[generate code to test that value(%ecx) >= LowerBound(ID)]]
+							[[generate code to test that value(%ecx) <= UpperBound(ID)]]
+
+
+		- Suggestions:
+			o Implement Input/Output: read() and write()
+				generate code to support scanf and printf
+				Example:
+					program main(input,output);
+						var a,b: integer:
+					begin
+						read(a);
+						b = a+1;
+						write(b)
+					end.
