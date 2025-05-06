@@ -1,7 +1,8 @@
 LEX = flex
 YACC = bison
 CC = cc
-CFLAGS = -Wall -ferror-limit=0 -std=c2x
+#CFLAGS = -Wall -ferror-limit=0 -std=c2x
+CFLAGS = -std=c2x
 
 .PHONY: all clean test run_tests
 

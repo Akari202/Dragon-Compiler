@@ -33,6 +33,7 @@ int main(int argc, char *argv[]) {
         }
 
         print_ast(root_ast);
+        print_symbol_table(symbol_table);
 
         free_ast(root_ast);
         free_symbol_table(symbol_table);

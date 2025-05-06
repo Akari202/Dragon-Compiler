@@ -5,7 +5,6 @@
 #include "ast.h"
 #include "symbol_table.h"
 
-// External declaration for the lexer
 extern int yylex();
 extern int yylineno;
 void yyerror(char *error);
@@ -52,9 +51,11 @@ void yyerror(char *error);
 %type <list> identifier_list
 %type <list> subprogram_declarations
 %type <ast> subprogram_declaration
+%type <ast> subprogram_header
 %type <list> optional_statements
 %type <list> statement_list
 %type <list> parameter_list
+%type <list> arguments
 %type <list> expression_list
 %type <sval> type
 %type <sval> standard_type
@@ -111,12 +112,11 @@ declarations:
         add_child($$, $1);  // Previous declarations
         ListNode *node = $3->head;
         while (node) {
-            // Insert each identifier into the symbol table
             insert_symbol(symbol_table, ((ASTNode *)node->data)->value, $5);
-            add_child($$, (ASTNode *)node->data);  // Add each identifier to the AST
+            add_child($$, (ASTNode *)node->data);
             node = node->next;
         }
-        list_free($3, free); // Free the identifier list
+        list_free($3, free);
     }
     | /* empty */
     {
@@ -126,7 +126,7 @@ declarations:
 
 type:
     standard_type {
-        $$ = $1; // Pass the type name directly
+        $$ = $1;
     }
     | ARRAY '[' INUM DOUBLEDOT INUM ']' OF standard_type {
         $$ = strdup("ARRAY");
@@ -148,34 +148,51 @@ subprogram_declarations:
         list_append($1, $2);
         $$ = $1;
     }
-    | /* empty */ {
+    | /* empty */
+    {
         $$ = list_create();
     }
     ;
 
 subprogram_declaration:
-    FUNCTION ID '(' parameter_list ')' ':' standard_type ';'
+    subprogram_header
     declarations
     subprogram_declarations
     compound_statement
     {
-        $$ = create_ast_node(AST_TYPE_FUNCTION_CALL, $2);
-        add_child($$, $4);  // parameter_list
-        add_child($$, create_ast_node(AST_TYPE_IDENTIFIER, $7));  // standard_type
-        add_child($$, $9);  // declarations
-        add_child($$, $10);  // subprogram_declarations
-        add_child($$, $11); // compound_statement
+        fprintf(stderr, "DEBUG: subprogram_declaration -> subprogram_header: %p, declarations: %p, subprogram_declarations: %p, compound_statement: %p\n", $1, $2, $3, $4);
+        $$ = $1;
+        if ($2) add_child($$, $2);  // declarations
+        if ($3) add_child($$, $3);  // subprogram_declarations
+        if ($4) add_child($$, $4);  // compound_statement
+        /* pop_scope(symbol_table); */
     }
-    | PROCEDURE ID '(' parameter_list ')' ';'
-    declarations
-    subprogram_declarations
-    compound_statement
+    ;
+
+subprogram_header:
+    FUNCTION ID arguments ':' standard_type ';'
     {
-        $$ = create_ast_node(AST_TYPE_PROCEDURE_CALL, $2);
-        add_child($$, $4);  // parameter_list
-        add_child($$, $7);  // declarations
-        add_child($$, $8);  // subprogram_declarations
-        add_child($$, $9);  // compound_statement
+        $$ = create_ast_node(AST_TYPE_FUNCTION, $2);
+        add_child($$, $3);
+        add_child($$, create_ast_node(AST_TYPE_IDENTIFIER, $5));
+        push_scope(symbol_table);
+    }
+    | PROCEDURE ID arguments ';'
+    {
+        $$ = create_ast_node(AST_TYPE_PROCEDURE, $2);
+        add_child($$, $3);
+        push_scope(symbol_table);
+    }
+    ;
+
+arguments:
+    '(' parameter_list ')'
+    {
+        $$ = $2;
+    }
+    | /* empty */
+    {
+        $$ = NULL;
     }
     ;
 
@@ -204,36 +221,44 @@ parameter_list:
 compound_statement:
     BEGIN_TOKEN optional_statements END
     {
+        fprintf(stderr, "DEBUG: compound_statement -> optional_statements: %p\n", $2);
         $$ = create_ast_node(AST_TYPE_COMPOUND, NULL);
-        if ($2 != NULL) {  // Add optional statements only if they exist
+        if ($2 != NULL) {
             add_child($$, $2);
         }
     }
     | /* empty */
     {
-        $$ = NULL;
+        fprintf(stderr, "DEBUG: compound_statement -> empty\n");
+        $$ = create_ast_node(AST_TYPE_COMPOUND, NULL);
     }
     ;
 
 optional_statements:
     statement_list
     {
-        $$ = $1;  // Pass the list of statements
+        $$ = $1;
     }
     | /* empty */
     {
-        $$ = NULL;  // No statements, return NULL
+        $$ = create_ast_node(AST_TYPE_COMPOUND, NULL);
     }
     ;
 
 statement_list:
     statement {
-        $$ = create_ast_node(AST_TYPE_STATEMENT, NULL);
-        add_child($$, $1);
+        if ($1) {
+            $$ = create_ast_node(AST_TYPE_STATEMENT, NULL);
+            add_child($$, $1);
+        } else {
+            $$ = NULL;
+        }
     }
     | statement_list ';' statement
     {
-        add_child($1, $3);
+        if ($3) {
+            add_child($1, $3);
+        }
         $$ = $1;
     }
     ;
@@ -281,7 +306,7 @@ variable:
     | ID '[' expression ']'
     {
         $$ = create_ast_node(AST_TYPE_ARRAY_ACCESS, $1);
-        add_child($$, $3);  // index
+        add_child($$, $3);
     }
     ;
 
@@ -292,7 +317,7 @@ procedure_statement:
     | ID '(' expression_list ')'
     {
         $$ = create_ast_node(AST_TYPE_PROCEDURE_CALL, $1);
-        add_child($$, $3);  // arguments
+        add_child($$, $3);
     }
     ;
 
@@ -316,8 +341,8 @@ expression:
     | simple_expression RELOP simple_expression
     {
         $$ = create_ast_node(AST_TYPE_RELATIONAL, $2);
-        add_child($$, $1);  // left operand
-        add_child($$, $3);  // right operand
+        add_child($$, $1);  // left
+        add_child($$, $3);  // right
     }
     ;
 
@@ -328,8 +353,8 @@ simple_expression:
     | simple_expression ADDOP term
     {
         $$ = create_ast_node(AST_TYPE_ARITHMETIC, $2);
-        add_child($$, $1);  // left operand
-        add_child($$, $3);  // right operand
+        add_child($$, $1);  // left
+        add_child($$, $3);  // right
     }
     ;
 
@@ -340,8 +365,8 @@ term:
     | term MULOP factor
     {
         $$ = create_ast_node(AST_TYPE_ARITHMETIC, $2);
-        add_child($$, $1);  // left operand
-        add_child($$, $3);  // right operand
+        add_child($$, $1);  // left
+        add_child($$, $3);  // right
     }
     ;
 
@@ -352,12 +377,12 @@ factor:
     | ID '(' expression_list ')'
     {
         $$ = create_ast_node(AST_TYPE_FUNCTION_CALL, $1);
-        add_child($$, $3);  // arguments
+        add_child($$, $3);
     }
     | ID '[' expression ']'
     {
         $$ = create_ast_node(AST_TYPE_ARRAY_ACCESS, $1);
-        add_child($$, $3);  // index
+        add_child($$, $3);
     }
     | INUM {
         char buffer[32];

@@ -6,9 +6,9 @@
 
 void print_token(const char *token_name, const char *token_value) {
     if (token_value) {
-        printf("[TOKEN: %s, VALUE: %s]\n", token_name, token_value);
+        printf("[TOKEN: %s, VALUE: %s, LINE: %d]\n", token_name, token_value, yylineno);
     } else {
-        printf("[TOKEN: %s]\n", token_name);
+        printf("[TOKEN: %s, LINE: %d]\n", token_name, yylineno);
     }
 }
 

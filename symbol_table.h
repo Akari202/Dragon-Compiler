@@ -37,6 +37,7 @@ void pop_scope(SymbolTable *symbol_table);
 void insert_symbol(SymbolTable *symbol_table, const char *name, const char *type);
 Symbol *lookup_symbol(SymbolTable *symbol_table, const char *name);
 void free_symbol_table(SymbolTable *symbol_table);
+void print_symbol_table(SymbolTable *symbol_table);
 
 // Declare the global variable as extern
 extern SymbolTable *symbol_table;

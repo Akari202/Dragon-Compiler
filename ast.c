@@ -38,7 +38,12 @@ const char *get_ast_node_type_name(ASTNodeType type) {
         case AST_TYPE_ARITHMETIC: return "Arithmetic";
         case AST_TYPE_ARRAY_ACCESS: return "Array Access";
         case AST_TYPE_DECLARATIONS: return "Declarations";
-        default: return "Unknown";
+        case AST_TYPE_FUNCTION: return "Function";
+        case AST_TYPE_PROCEDURE: return "Procedure";
+        default: {
+            fprintf(stderr, "Unknown type: %s", type);
+            return "Unknown";
+        };
     }
 }
 

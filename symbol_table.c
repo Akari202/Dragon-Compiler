@@ -143,3 +143,26 @@ void free_symbol_table(SymbolTable *symbol_table) {
     free(symbol_table->scopes);
     free(symbol_table);
 }
+
+void print_symbol_table(SymbolTable *symbol_table) {
+    if (!symbol_table) {
+        fprintf(stderr, "Error: Symbol table is NULL.\n");
+        return;
+    }
+
+    printf("Symbol Table:\n");
+    printf("=============\n");
+
+    for (int i = 0; i < symbol_table->size; i++) {
+        printf("Scope %d:\n", i);
+        HashTable *current_scope = symbol_table->scopes[i];
+        for (int j = 0; j < TABLE_SIZE; j++) {
+            Symbol *current = current_scope->table[j];
+            while (current != NULL) {
+                printf("  Name: %s, Type: %s\n", current->name, current->type);
+                current = current->next;
+            }
+        }
+        printf("\n");
+    }
+}
